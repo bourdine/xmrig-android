@@ -29,7 +29,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 4. Кэширование Gradle и NDK для ускорения последующих сборок
+      # 4. Кэширование Gradle и NDK
       - name: Cache Gradle and NDK
         uses: actions/cache@v4
         with:
@@ -53,11 +53,11 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential cmake make
 
-      # 7. Подготовка нативного кода XMRig (запуск вашего скрипта, который создаёт miner.cpp и др.)
+      # 7. Подготовка нативного кода XMRig (запуск скрипта build-xmrig.sh из корня)
       - name: Prepare XMRig native code
         run: |
-          chmod +x ./scripts/build-xmrig.sh
-          ./scripts/build-xmrig.sh
+          chmod +x ./build-xmrig.sh
+          ./build-xmrig.sh
 
       # 8. Сборка APK (debug-версия)
       - name: Build with Gradle
