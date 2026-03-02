@@ -12,24 +12,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Клонирование репозитория с подмодулями (обязательно для xmrig_custom_source)
+      # 1. Клонирование репозитория с подмодулями
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      # 2. Установка JDK 17
+      # 2. Диагностика: показать все файлы в корне
+      - name: List root files
+        run: ls -la
+
+      # 3. Показать содержимое папки xmrig_custom_source (подмодуль)
+      - name: List xmrig_custom_source
+        run: |
+          echo "=== xmrig_custom_source content ==="
+          if [ -d "xmrig_custom_source" ]; then
+            ls -la xmrig_custom_source/
+            echo "--- Recursive listing ---"
+            find xmrig_custom_source -type f -name "*.cpp" | head -20
+          else
+            echo "xmrig_custom_source not found!"
+          fi
+
+      # 4. Установка JDK 17
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3. Настройка Android SDK
+      # 5. Настройка Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 4. Кэширование Gradle и NDK
+      # 6. Кэширование
       - name: Cache Gradle and NDK
         uses: actions/cache@v4
         with:
@@ -41,7 +57,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-ndk-
 
-      # 5. Установка NDK (версия из вашего проекта)
+      # 7. Установка NDK
       - name: Install NDK
         run: |
           SDK_ROOT=$ANDROID_HOME
@@ -49,21 +65,38 @@ jobs:
           echo "y" | $SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "ndk;$NDK_VERSION"
           echo "ANDROID_NDK_HOME=$SDK_ROOT/ndk/$NDK_VERSION" >> $GITHUB_ENV
 
-      # 6. Установка системных зависимостей для сборки нативного кода
+      # 8. Системные зависимости
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential cmake make
 
-      # 7. Подготовка нативного кода XMRig (запуск скрипта build-xmrig.sh из корня)
+      # 9. Подготовка нативного кода (запуск скрипта)
       - name: Prepare XMRig native code
         run: |
-          chmod +x ./build-xmrig.sh
-          ./build-xmrig.sh
+          if [ -f "./build-xmrig.sh" ]; then
+            chmod +x ./build-xmrig.sh
+            ./build-xmrig.sh
+          else
+            echo "build-xmrig.sh not found!"
+            exit 1
+          fi
 
-      # 8. Сборка APK (debug-версия)
+      # 10. Диагностика после копирования: проверить app/src/main/cpp
+      - name: Check copied files
+        run: |
+          echo "=== Content of app/src/main/cpp ==="
+          if [ -d "app/src/main/cpp" ]; then
+            ls -la app/src/main/cpp/
+            echo "--- Looking for miner.cpp ---"
+            find app/src/main/cpp -name "miner.cpp" || echo "miner.cpp NOT FOUND"
+          else
+            echo "app/src/main/cpp does not exist"
+          fi
+
+      # 11. Сборка APK
       - name: Build with Gradle
         run: ./gradlew assembleDebug
 
-      # 9. Загрузка APK как артефакта
+      # 12. Загрузка APK (если сборка успешна)
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
