@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Клонирование репозитория с подмодулями (важно!)
+      # 1. Клонирование репозитория с подмодулями (обязательно для xmrig_custom_source)
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -29,7 +29,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 4. Кэширование Gradle и NDK
+      # 4. Кэширование Gradle и NDK для ускорения последующих сборок
       - name: Cache Gradle and NDK
         uses: actions/cache@v4
         with:
@@ -53,13 +53,13 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential cmake make
 
-      # 7. Подготовка нативного кода XMRig (запуск вашего скрипта)
+      # 7. Подготовка нативного кода XMRig (запуск вашего скрипта, который создаёт miner.cpp и др.)
       - name: Prepare XMRig native code
         run: |
           chmod +x ./scripts/build-xmrig.sh
           ./scripts/build-xmrig.sh
 
-      # 8. Сборка APK (debug)
+      # 8. Сборка APK (debug-версия)
       - name: Build with Gradle
         run: ./gradlew assembleDebug
 
