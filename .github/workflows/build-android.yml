@@ -2,28 +2,34 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main", "master" ]  # или ваша основная ветка
+    branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  workflow_dispatch:  # позволяет запускать сборку вручную из интерфейса GitHub
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Клонирование репозитория с подмодулями (важно!)
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
+      # 2. Установка JDK 17
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
+      # 3. Настройка Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      # 4. Кэширование Gradle и NDK
       - name: Cache Gradle and NDK
         uses: actions/cache@v4
         with:
@@ -35,19 +41,29 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-ndk-
 
+      # 5. Установка NDK (версия из вашего проекта)
       - name: Install NDK
         run: |
           SDK_ROOT=$ANDROID_HOME
-          NDK_VERSION="26.3.11579264"  # Укажите версию, которую требует проект (можно посмотреть в build.gradle)
+          NDK_VERSION="26.3.11579264"
           echo "y" | $SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "ndk;$NDK_VERSION"
           echo "ANDROID_NDK_HOME=$SDK_ROOT/ndk/$NDK_VERSION" >> $GITHUB_ENV
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      # 6. Установка системных зависимостей для сборки нативного кода
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake make
 
+      # 7. Подготовка нативного кода XMRig (запуск вашего скрипта)
+      - name: Prepare XMRig native code
+        run: |
+          chmod +x ./scripts/build-xmrig.sh
+          ./scripts/build-xmrig.sh
+
+      # 8. Сборка APK (debug)
       - name: Build with Gradle
-        run: ./gradlew assembleDebug  # Собирает debug-версию APK
+        run: ./gradlew assembleDebug
 
+      # 9. Загрузка APK как артефакта
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
